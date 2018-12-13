@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use ImageOptimizer;
 
 class RecognitionController extends Controller
 {
@@ -13,7 +14,11 @@ class RecognitionController extends Controller
     	// $target = $request['target'];
         $source = $request->file('source');
         $target = $request->file('target');
+        ImageOptimizer::optimize($source->getRealPath());
+        ImageOptimizer::optimize($target->getRealPath());
+        // dd(file_get_contents($source->getRealPath()));
     	$source_data = base64_encode(file_get_contents($source->getRealPath()));
+        // dd($source_data);
     	$target_data = base64_encode(file_get_contents($target->getRealPath()));
         // dd($source_data);
     	// dd($request['source']->getClientOriginalName());

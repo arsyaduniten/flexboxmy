@@ -1,6 +1,7 @@
 @extends('public.base')
 @section('head')
 <script type="text/javascript" src="{{ URL::asset('js/progressbar.js') }}"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 <style type="text/css">
 body {
   background: whitesmoke;
@@ -94,7 +95,7 @@ h1 small {
         @csrf
         <div class="avatar-upload">
             <div class="avatar-edit">
-                <input type='file' id="sourceUpload" name="source" accept=".png, .jpg, .jpeg" />
+                <input type='file' id="sourceUpload" name="source" accept=".png, .jpeg" />
                 <label for="sourceUpload"></label>
             </div>
             <div class="avatar-preview">
@@ -105,7 +106,7 @@ h1 small {
         <button class="px-4 py-2 bg-blue-dark text-white rounded-full shadow-lg font-bold" type="submit">Check</button>
         <div class="avatar-upload">
             <div class="avatar-edit">
-                <input type='file' id="targetUpload" name="target" accept=".png, .jpg, .jpeg" />
+                <input type='file' id="targetUpload" name="target" accept=".png, .jpeg" />
                 <label for="targetUpload"></label>
             </div>
             <div class="avatar-preview">
@@ -114,9 +115,15 @@ h1 small {
             </div>
         </div>
     </form>
-    <div class="flex w-full">
-      <div id="container"></div>
-      <div id="container2"></div>
+    <div class="flex flex-row" style="margin-left: 17%">
+      <div class="m-2">
+        <label id="similar-label" class="hidden text-xl font-bold text-center">Similarity</label>
+        <div id="similarity" class="chart-container"></div>
+      </div>
+      <div class="m-2">
+        <label id="conf-label" class="hidden text-xl font-bold text-center">Confidence</label>
+        <div id="confidence" class="chart-container"></div>
+      </div>
     </div>
 </div>
 
@@ -126,37 +133,156 @@ h1 small {
 @section('script')
 <script type="text/javascript">
 
-var bar = new ProgressBar.SemiCircle(container, {
-  strokeWidth: 6,
-  color: '#FFEA82',
-  trailColor: '#eee',
-  trailWidth: 1,
-  easing: 'easeInOut',
-  duration: 1400,
-  svgStyle: null,
-  text: {
-    value: '',
-    alignToBottom: false
-  },
-  from: {color: '#FFEA82'},
-  to: {color: '#ED6A5A'},
-  // Set default step function for all animate calls
-  step: (state, bar) => {
-    bar.path.setAttribute('stroke', state.color);
-    var value = Math.round(bar.value() * 100);
-    if (value === 0) {
-      bar.setText('');
-    } else {
-      bar.setText(value);
-    }
+// function barTrigger(container, number){
+//   var bar = new ProgressBar.SemiCircle(container, {
+//     strokeWidth: 6,
+//     color: '#FFEA82',
+//     trailColor: '#eee',
+//     trailWidth: 1,
+//     easing: 'easeInOut',
+//     duration: 1400,
+//     svgStyle: null,
+//     text: {
+//       value: '',
+//       alignToBottom: false
+//     },
+//     from: {color: '#FFEA82'},
+//     to: {color: '#ED6A5A'},
+//     // Set default step function for all animate calls
+//     step: (state, bar) => {
+//       bar.path.setAttribute('stroke', state.color);
+//       var value = Math.round(bar.value() * number);
+//       if (value === 0) {
+//         bar.setText('');
+//       } else {
+//         bar.setText(value+"%");
+//       }
 
-    bar.text.style.color = state.color;
-  }
-});
-bar.text.style.fontFamily = '"Raleway", Helvetica, sans-serif';
-bar.text.style.fontSize = '2rem';
+//       bar.text.style.color = state.color;
+//     }
+//   });
+//   bar.text.style.fontFamily = '"Raleway", Helvetica, sans-serif';
+//   bar.text.style.fontSize = '2rem';
 
-bar.animate(1.0);  // Number from 0.0 to 1.0
+//   bar.animate(1.0);  // Number from 0.0 to 1.0
+// }
+
+function barTrigger(id, number){
+  var percent = number;
+
+  var ratio = percent / 100;
+
+  var pie = d3.layout
+    .pie()
+    .value(function(d) {
+      return d;
+    })
+    .sort(null);
+
+  var w = 300,
+    h = 300;
+
+  var outerRadius = w / 2 - 10;
+  var innerRadius = 85;
+
+  var color = ["#ececec", "#2779bd", "#888888"];
+
+  var colorOld = "#F00";
+  var colorNew = "#0F0";
+
+  var arc = d3.svg
+    .arc()
+    .innerRadius(innerRadius)
+    .outerRadius(outerRadius)
+    .startAngle(0)
+    .endAngle(Math.PI);
+
+  var arcLine = d3.svg
+    .arc()
+    .innerRadius(innerRadius)
+    .outerRadius(outerRadius)
+    .startAngle(0);
+
+  var svg = d3
+    .select(id)
+    .append("svg")
+    .attr({
+      width: w,
+      height: h,
+      class: ""
+    })
+    .append("g")
+    .attr({
+      transform: "translate(" + w / 2 + "," + h / 2 + ")"
+    });
+
+  var path = svg
+    .append("path")
+    .attr({
+      d: arc,
+      transform: "rotate(-90)"
+    })
+    .attr({
+      "stroke-width": "1",
+      stroke: "#FFFFFF"
+    })
+    .style({
+      fill: "#FFFFFF"
+    });
+
+  var pathForeground = svg
+    .append("path")
+    .datum({ endAngle: 0 })
+    .attr({
+      d: arcLine,
+      transform: "rotate(-90)"
+    })
+    .style({
+      fill: function(d, i) {
+        return color[1];
+      }
+    });
+
+  var middleCount = svg
+    .append("text")
+    .datum(0)
+    .text(function(d) {
+      return d;
+    })
+    .attr({
+      class: "font-bold text-xl",
+      "text-anchor": "middle",
+      dy: 0,
+      dx: 5
+    })
+    .style({
+      fill: d3.rgb("#000000"),
+    });
+
+  var oldValue = 0;
+  var arcTween = function(transition, newValue, oldValue) {
+    transition.attrTween("d", function(d) {
+      var interpolate = d3.interpolate(d.endAngle, Math.PI * (newValue / 100));
+
+      var interpolateCount = d3.interpolate(oldValue, newValue);
+
+      return function(t) {
+        d.endAngle = interpolate(t);
+        middleCount.text(Math.floor(interpolateCount(t)) + "%");
+
+        return arcLine(d);
+      };
+    });
+  };
+
+  pathForeground
+    .transition()
+    .duration(750)
+    .ease("cubic")
+    .call(arcTween, percent, oldValue);
+
+}
+
 $.ajaxSetup({
     headers: {
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -186,7 +312,6 @@ $("#targetUpload").change(function() {
 $('#myForm').submit(function(event) {
     event.preventDefault();
     var formData = new FormData($(this)[0]);
-    // console.log($(this)[0]);
     $.ajax({
         url: '{{ url('api/check') }}',
         type: 'POST',              
@@ -194,8 +319,23 @@ $('#myForm').submit(function(event) {
         processData: false,
         contentType: false,
         success: function(result)
-        {
-            console.log("success>>> ", result);
+        { 
+            // barTrigger(container1, result['similarit'])
+            if(result['match'].length === 0){
+              var confidence = result['source']['Confidence'];
+              var match = 0;
+              barTrigger("#similarity", match);
+              barTrigger("#confidence", confidence);
+              $("#similar-label").removeClass('hidden');
+              $("#conf-label").removeClass('hidden');
+            } else if(result['match'].length > 0) {
+              var confidence = result['match'][0]['Face']['Confidence'];
+              var match = result['match'][0]['Similarity'];
+              barTrigger("#similarity", match);
+              barTrigger("#confidence", confidence);
+              $("#similar-label").removeClass('hidden');
+              $("#conf-label").removeClass('hidden');
+            }
         },
         error: function(data)
         {
