@@ -1,5 +1,6 @@
 @extends('public.base')
 @section('head')
+<script type="text/javascript" src="{{ URL::asset('js/progressbar.js') }}"></script>
 <style type="text/css">
 body {
   background: whitesmoke;
@@ -89,7 +90,7 @@ h1 small {
     <h1>Image Recognition
         <small>by Azad</small>
     </h1>
-    <form class="flex items-center" method="POST" enctype="multipart/form-data" action="/check">
+    <form class="flex items-center" method="POST" enctype="multipart/form-data" action="/check" id="myForm">
         @csrf
         <div class="avatar-upload">
             <div class="avatar-edit">
@@ -113,6 +114,10 @@ h1 small {
             </div>
         </div>
     </form>
+    <div class="flex w-full">
+      <div id="container"></div>
+      <div id="container2"></div>
+    </div>
 </div>
 
 @endsection
@@ -120,6 +125,44 @@ h1 small {
 
 @section('script')
 <script type="text/javascript">
+
+var bar = new ProgressBar.SemiCircle(container, {
+  strokeWidth: 6,
+  color: '#FFEA82',
+  trailColor: '#eee',
+  trailWidth: 1,
+  easing: 'easeInOut',
+  duration: 1400,
+  svgStyle: null,
+  text: {
+    value: '',
+    alignToBottom: false
+  },
+  from: {color: '#FFEA82'},
+  to: {color: '#ED6A5A'},
+  // Set default step function for all animate calls
+  step: (state, bar) => {
+    bar.path.setAttribute('stroke', state.color);
+    var value = Math.round(bar.value() * 100);
+    if (value === 0) {
+      bar.setText('');
+    } else {
+      bar.setText(value);
+    }
+
+    bar.text.style.color = state.color;
+  }
+});
+bar.text.style.fontFamily = '"Raleway", Helvetica, sans-serif';
+bar.text.style.fontSize = '2rem';
+
+bar.animate(1.0);  // Number from 0.0 to 1.0
+$.ajaxSetup({
+    headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    }
+});
+
 function readURL(input, id) {
     if (input.files && input.files[0]) {
         var reader = new FileReader();
@@ -138,6 +181,28 @@ $("#sourceUpload").change(function() {
 
 $("#targetUpload").change(function() {
     readURL(this, "#targetPreview");
+});
+
+$('#myForm').submit(function(event) {
+    event.preventDefault();
+    var formData = new FormData($(this)[0]);
+    // console.log($(this)[0]);
+    $.ajax({
+        url: '{{ url('api/check') }}',
+        type: 'POST',              
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(result)
+        {
+            console.log("success>>> ", result);
+        },
+        error: function(data)
+        {
+            console.log("error>>> ", data.responseText);
+        }
+    });
+
 });
 </script>
 @endsection

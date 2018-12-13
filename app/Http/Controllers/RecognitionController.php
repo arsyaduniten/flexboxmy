@@ -9,30 +9,34 @@ class RecognitionController extends Controller
     //
     public function index(Request $request)
     {
-    	$source = $request['source'];
-    	$target = $request['target'];
-    	$source_data = file_get_contents($source->getRealPath());
-    	$target_data = file_get_contents($target->getRealPath());
+    	// $source = $request['source'];
+    	// $target = $request['target'];
+        $source = $request->file('source');
+        $target = $request->file('target');
+    	$source_data = base64_encode(file_get_contents($source->getRealPath()));
+    	$target_data = base64_encode(file_get_contents($target->getRealPath()));
+        // dd($source_data);
     	// dd($request['source']->getClientOriginalName());
     	$client = new \GuzzleHttp\Client();
+        $payload = [
+            'source'=> $source_data,
+            'target'=> $target_data
+        ];
+        $payload = json_encode($payload);
     	$response = $client->request('POST', 'https://4b2rof2e41.execute-api.ap-southeast-1.amazonaws.com/default/facialRekog', [
-    		'debug' => true,
     		'headers' => [
     			'x-api-key' => 'kuFDBWIIaQ3TKxYYoeNp71pmA1p1P0hA3f5Q6Mgp',
-    			'Content-Type' => 'multipart/form-data'
+    			'Content-Type' => 'application/json'
     		],
-	        'multipart' => [
-	        	[
-	        		'name'=> 'source',
-	        		'contents'=> $source_data
-	        	],
-	        	[
-	        		'name'=> 'target',
-	        		'contents'=> $target_data
-	        	]
-	    	]
+	        'body' => $payload
 	    ]);
-	    dd($response);
-	    $response = $response->getBody();
+	    $result = json_decode($response->getBody());
+        // dd($result);
+        return response()->json($result);
+    }
+
+    public function test()
+    {
+        return "PONG";
     }
 }

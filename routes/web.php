@@ -15,4 +15,4 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::post('/check', 'RecognitionController@index');
+// Route::post('/check', 'RecognitionController@index');
