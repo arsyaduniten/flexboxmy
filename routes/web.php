@@ -11,7 +11,7 @@
 |
 */
 
-Route::get('/', function () {
+Route::get('/image-recognition', function () {
     return view('welcome');
 });
 
